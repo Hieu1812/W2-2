@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id   String     @id
+  name String? @map("name") @db.VarChar(255) /// Tên sản phẩm
+
+  // Relation fields
+  reviews ReviewCrawl[] @relation("ProductReviews")
+}
+
+model ReviewCrawl {
+  id                     Int       @id @default(autoincrement())
+  system_product_id      String?   @map("system_product_id")
+  source                 String?   @db.VarChar(255) /// Nguồn review từ shopee/tiki/sendo
+  source_review_id       String?   @db.VarChar(255) @unique /// Id tại nguồn crawl review
+  source_customer_id     String?   @db.VarChar(255) /// Id tại nguồn của customer
+  score                  Int? /// Số sao review
+  type                   String?   @db.VarChar(20) /// Loại Review: text / image / video
+  content                String?   @db.Text /// Nội dung review
+  customer_name          String?   @db.VarChar(255) /// Tên người mua hàng
+  customer_avatar        String?   @db.Text /// Link avatar của customer
+  deleted                Boolean   @default(false) /// Cờ đánh dấu xóa
+  review_url             String?   @db.VarChar(255) /// link api của review
+  review_at              DateTime? /// Thời điểm user gửi review
+  created_at             DateTime  @default(now()) /// Thời gian tạo
+  updated_at             DateTime  @updatedAt /// Thời gian cập nhật
+  source_customer_avatar String?   @db.Text
+  approved               Boolean   @default(false)
+
+  // Relation fields
+  product Product? @relation("ProductReviews", fields: [system_product_id], references: [id])
+  meta review_crawl_meta[] @relation("reviewmeta")
+}
+
+
+model review_crawl_meta {
+  id          Int    @id @default(autoincrement())
+  review_id   String?
+  link        String?
+  type        Int
+  source_link String @db.Text
+  stored_file Int    @default(0)
+
+  reviewcrawl ReviewCrawl? @relation("reviewmeta", fields: [review_id], references: [source_review_id])
+}
